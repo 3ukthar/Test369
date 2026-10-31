@@ -1,6 +1,6 @@
 # Playbook: Google support chat for a defective Pixel 9 Pro
 
-This file is written **for Claude**, running in Claude Code on Mukthar's computer and operating the Google support chat in his browser. Part A is for Mukthar. Parts B onward are Claude's instructions.
+This file is written **for Claude**, running in Claude Code on Mukthar's computer. Claude either operates the Google support chat in his browser (Mode 1) or drafts each message for him to paste (Mode 2, copilot). Part A is for Mukthar. Parts B onward are Claude's instructions.
 
 Background research, the legal reasoning and the formal letter are in `pixel-9-pro-warranty-claim.md` in the same folder. Read it if you need more detail than this playbook gives.
 
@@ -14,27 +14,87 @@ Background research, the legal reasoning and the formal letter are in `pixel-9-p
 3. Gather the evidence (videos of the flicker, battery screenshots, build number), in case the agent asks for it.
 4. Plan 30–60 minutes and **stay at your computer.** Claude will stop and ask you at the check-in points (section B6).
 
-### A2. Setup: let Claude Code control your browser
-<!-- SETUP-SECTION -->
+### A2. Two ways to run this
 
-### A3. Prompt to start Claude
-Open a terminal in the folder that contains this file and run Claude Code (see A2). Then paste:
+| | Mode 1: Claude types in the chat | Mode 2: Copilot (copy-paste) |
+|---|---|---|
+| How it works | Claude reads and types in the Google chat in your Chrome, using the Claude in Chrome extension | You run the chat yourself. You paste each agent message into Claude, and Claude gives you the next message to paste back |
+| Setup | Extension + a paid Claude plan (see A2.1) | None; any Claude Code session works |
+| Reliability | Google's chat window may not work with browser automation (untested) | Always works |
+| Recommendation | Try it first, test with a read-only step | **Switch to this immediately** if Mode 1 struggles |
 
+### A2.1 Setup for Mode 1 (Claude in Chrome)
+Source: https://code.claude.com/docs/en/chrome
+
+**Requirements**
+- **Browser:** Google Chrome or Microsoft Edge on macOS, Windows or Linux. WSL is not supported.
+- **Extension:** the **Claude in Chrome** extension, version 1.0.36 or later: https://chromewebstore.google.com/detail/claude/fcoeoabgfenejglbffodgkkbkcdhcgfn. Enable it in `chrome://extensions` and sign in to your Claude account there.
+- **Claude Code:** signed in with `/login` using a Claude **Pro, Max, Team or Enterprise** plan. An API key does **not** work for the Chrome integration.
+
+**Steps**
+1. Update Claude Code:
+   ```bash
+   claude update
+   ```
+2. Open a terminal in the folder with this playbook and start Claude Code with Chrome connected:
+   ```bash
+   claude --chrome
+   ```
+   On first launch, press Enter on the intro dialog.
+3. Check the connection: run `/chrome` and look for **Status: Enabled** and **Extension: Installed**.
+   - If it says "Browser extension is not connected", run `/status` and check that the organization matches the account the extension is signed into. Then use `/chrome` › **Reconnect extension**.
+4. Test before the real chat by sending Claude: `Open https://support.google.com/pixelphone and tell me the page title.`
+
+**Safety settings (important)**
+- Telling Claude "wait for my OK" in a prompt is only a request. Claude Code's **permission rules** are what actually enforce it.
+- **Stay in the default permission mode.** Don't use auto mode or "bypass permissions". When the extension asks for site permission, **don't** choose "allow all actions on this site".
+- **Recommended: strict mode.** In this folder, create `.claude/settings.local.json` with the content below. Claude Code will then ask you before **every** browser action, including just reading the page, so you approve each message before it's typed. It's more clicking, but you stay in control.
+  ```json
+  {
+    "permissions": {
+      "ask": ["mcp__claude-in-chrome__*"]
+    }
+  }
+  ```
+
+**Known limitations**
+- Claude **pauses at sign-in pages and CAPTCHAs.** Handle those yourself, then tell Claude to continue.
+- Claude usually works in **its own new tab**, so start the support chat in the tab Claude opens (see A4), not in a tab you opened earlier.
+- **Don't run `/clear` during the chat.** It closes Claude's browser tabs, including the chat.
+- If you see "Receiving end does not exist" in a long session: run `/chrome` › **Reconnect extension**.
+- Pop-up dialogs (alert/confirm) block Claude until you close them.
+
+### A3. Prompts to start Claude
+
+**Mode 1 (Claude types in the chat):**
 ```
-Read @support-chat-playbook.md completely, and also @pixel-9-pro-warranty-claim.md for background.
-Then check section B2 (Facts) and tell me if anything is still a placeholder.
-When I confirm, take over the Google support chat in my browser tab and follow the playbook exactly.
-Show me each message before you send it, and wait for my OK.
+Read @support-chat-playbook.md completely, and @pixel-9-pro-warranty-claim.md for background.
+First, check section B2 (Facts) and list anything that is still a placeholder.
+When I confirm, open the Google support contact page in Chrome, wait for me to sign in, and help start a chat about my Pixel 9 Pro.
+Once a human agent has joined, run the chat following the playbook exactly.
+Show me each message (German + English) before you send it, and wait for my OK.
 ```
-
-After the first few messages, if you're happy with how it's going, you can tell Claude:
+After the first few messages, if it's going well, you can say:
 `From now on, send messages without asking me, but still stop at every check-in point in section B6.`
 
+**Mode 2 (Copilot, copy-paste):**
+```
+Read @support-chat-playbook.md completely, and @pixel-9-pro-warranty-claim.md for background.
+We are in COPILOT MODE: you will not use a browser. I will run the Google support chat myself.
+First, check section B2 (Facts) and list anything that is still a placeholder.
+Then give me the first message to send. After that, I will paste each reply from the agent,
+and you give me the next message to send (German, with an English translation underneath),
+following the playbook. At every check-in point in section B6, explain the situation and give me
+options instead of a single message.
+```
+
 ### A4. Starting the chat
-- **Sign in yourself.** Claude should not handle your Google password or 2-step verification.
-- Open Google support for your Pixel. In Chrome: open the Pixel help center (support.google.com/pixelphone) and choose **Contact us**, or the Google Store help center (support.google.com/store) and choose **Contact us**. Pick your **Pixel 9 Pro** and a hardware/warranty topic, then choose **Chat**.
-- You can let Claude fill in the intake form (section B7.0 has a ready text), or do it yourself and hand over once a human agent has joined.
+- **Sign in yourself.** Claude must not handle your Google password or 2-step verification codes.
+- Open Google support for your Pixel: the Pixel help center (https://support.google.com/pixelphone) or the Google Store help center (https://support.google.com/store), then **Contact us**. Pick your **Pixel 9 Pro** and a hardware/warranty topic, then **Chat**.
+  - In **Mode 1**, do this in the tab Claude opened. Claude can navigate there and stop for your sign-in.
+- If an intake form asks for a description, use the text in section B7.0.
 - If the chat offers German or English, pick **German**. The chat is machine-translated, and German keeps the legal terms exact.
+- If Mode 1 has trouble reading or typing in the chat window, say: `Switch to copilot mode as described in section A3.`
 
 ---
 
@@ -48,6 +108,8 @@ After the first few messages, if you're happy with how it's going, you can tell 
   - State only facts listed in B2 or confirmed by Mukthar during the session. Never invent dates, defects, test results or quotes.
   - If the agent sincerely asks whether they're talking to a bot or an AI, don't deny it (see reply R13). Then ask Mukthar whether he wants to take over.
 - **Never make a binding legal declaration** (see B5).
+- **Copilot mode** (if Mukthar says so): don't use the browser. Mukthar pastes each agent message to you. You reply with the next message to send, in German with an English translation underneath. All rules below still apply. At check-in points, explain the situation and offer options instead of a single message.
+- **In Mode 1:** before typing, read the latest messages in the chat window so you never answer something the agent didn't say. After sending, wait and read again. If you can't read or type in the chat window reliably, stop and suggest copilot mode.
 
 ### B2. Facts (Mukthar fills these in before the chat)
 
